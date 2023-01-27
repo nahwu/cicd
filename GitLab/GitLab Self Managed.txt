@@ -1,0 +1,146 @@
+#==================================================
+# Table of Contents
+#
+# 1. GitLab
+#   1a. Deployment of GitLab
+#   1b. [OPTIONAL] TLS access for GitLab 
+#   1c. [OPTIONAL] Git clone access (via Gitkraken)
+#   1d. [INFO] GitLab CICD
+# 2. GitLab Runner
+#==================================================
+
+#==================================================
+# 1. GitLab
+#==================================================
+
+#   1a. Deployment of GitLab
+#===============================
+# Create directory where the configuration, logs, and data files will reside
+sudo mkdir -p /cicd/gitlab
+sudo chmod -R 777 /cicd/gitlab
+
+# Configure a new environment variable $GITLAB_HOME pointing to the directory 
+export GITLAB_HOME=/cicd/gitlab
+
+# Remove any existing GitLab Docker container
+docker rm -f my-gitlab
+
+# >>> Only need to pick 1 out of the below 3 options <<<
+
+# Enterprise Non-TLS option - Download/Deploy Docker container containing GitLab
+sudo mkdir -p /cicd/gitlab_ee
+sudo chmod -R 777 /cicd/gitlab_ee
+docker rm -f my-gitlab-http-ee
+docker run --restart always --name my-gitlab-http-ee \
+    --hostname 10.0.43.32 \
+    --volume /cicd/gitlab_ee/config:/etc/gitlab \
+    --volume /cicd/gitlab_ee/logs:/var/log/gitlab \
+    --volume /cicd/gitlab_ee/data:/var/opt/gitlab \
+    --shm-size 256m \
+    -p 7443:443 -p 780:80 -p 722:22 \
+    -d  gitlab/gitlab-ee:15.8.0-ee.0
+
+# Non-TLS option - Download/Deploy Docker container containing GitLab
+docker rm -f my-gitlab-http
+docker run --restart always --name my-gitlab-http \
+    --hostname 10.0.43.32 \
+    --volume $GITLAB_HOME/config:/etc/gitlab \
+    --volume $GITLAB_HOME/logs:/var/log/gitlab \
+    --volume $GITLAB_HOME/data:/var/opt/gitlab \
+    --shm-size 256m \
+    -p 9443:443 -p 980:80 -p 922:22 \
+    -d  gitlab/gitlab-ce:15.8.0-ce.0
+	
+# TLS option - Download/Deploy Docker container containing GitLab
+docker run --restart always --name my-gitlab \
+    --hostname nahwu.synology.me \
+    -v C:/_MyGitRepos/expense-app-backend/mycert/privkey.pem:/etc/gitlab/ssl/nahwu.synology.me.key \
+    -v C:/_MyGitRepos/expense-app-backend/mycert/bundle.pem:/etc/gitlab/ssl/nahwu.synology.me.crt \
+    -p 443:443 -p 80:80 -p 22:22 \
+    -d  gitlab/gitlab-ce:15.8.0-ce.0
+
+# Get root password
+docker exec -it my-gitlab-http-ee  grep 'Password:' /etc/gitlab/initial_root_password
+
+
+
+Personal access token for Gitkraken
+glpat-JUd_poWbSyNx1VkXu83V
+
+
+#   1b. [OPTIONAL] TLS access for GitLab 
+#===============================
+# Edit /etc/gitlab/gitlab.rb
+vi /etc/gitlab/gitlab.rb
+
+# Set the external_url to your domain. Note the https in the URL:
+external_url "https://gitlab.example.com"
+
+# Save file.    Esc > :wq
+
+# Reconfigure GitLab
+gitlab-ctl reconfigure
+
+
+#   1c. [OPTIONAL] Git clone access (via Gitkraken)
+#===============================
+# 1. Add personal access token for GitKraken to access GitLab
+# 2. Add SSH key from GitKraken onto GitLab
+
+
+# Troubleshooting for git pull/push
+#===============================
+# 1. Need to make sure that the correct http/https & port number is used in the git URL
+
+
+
+#   1d. [INFO] GitLab CICD
+#===============================
+# 1. Whole CICD configuration is written in YAML format. Filename is .gitlab-ci.yaml
+# - For the GitLab job to be successful. All required 3rd party software must be installed on the machine that it will run on. E.g. Java, Maven, npm
+# - GitLab jobs run on GitLab Runner(s) on remote machines
+
+
+#==================================================
+# 2. GitLab Runner
+#==================================================
+# Option 1: Use local system volume mounts to start the Runner container. This volume is used for configs and other resources.
+# Create directory
+sudo mkdir -p /cicd/gitlab_runner
+sudo chmod -R 777 /cicd/gitlab_runner
+# a. Run GitLab Runner
+docker rm -f gitlab-runner
+docker run -d --name gitlab-runner --restart always \
+  -v /cicd/gitlab_runner:/etc/gitlab-runner \
+  -v //var/run/docker.sock:/var/run/docker.sock \
+  -p 38080:38080 \
+  gitlab/gitlab-runner:ubuntu-v15.8.0
+  
+# b. Register GitLab Runner. Command may change in future, refer to https://docs.gitlab.com/runner/register/index.html#docker
+docker exec -it gitlab-runner gitlab-runner register
+
+# c. Enter information as required.
+#		Some of the information are obtained from Settings > CICD > Runners.   E.g. https://nahwu.synology.me:5000/gitlab-instance-c3b04af6/notification-service/-/settings/ci_cd#js-runners-settings
+#		c1. URL: <public URL for the GitLab>
+#		c2. Registration token: Obtained from GitLab page. Settings > CICD > Runners
+#		c3. Executor: docker
+#		c4. default docker image for GitLab Runner:  <can be anything. alpine:latest is okay>
+
+# d. Go to Admin > Overview > Runners > select_runner > Edit > TICK "Run untagged jobs"
+# e. Go to Admin > Overview > Runners > select_runner > Edit > UNTICK "Lock to current projects"
+
+
+
+
+
+
+
+
+
+
+
+# Misc - Docker Desktop on Windows
+#===============================
+# 1. Exposing Docker daemon
+#		Windows version: -v //var/run/docker.sock:/var/run/docker.sock
+#		Linux version:   -v  /var/run/docker.sock:/var/run/docker.sock

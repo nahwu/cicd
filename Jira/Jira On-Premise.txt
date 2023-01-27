@@ -1,0 +1,11 @@
+# Jira
+#===============================
+docker volume create --name jiraVolume
+
+docker rm -f my-jira
+docker run --restart always --name my-jira \
+    -v jiraVolume:/var/atlassian/application-data/jira \
+    -p 8888:8080 \
+    -d  atlassian/jira-software:9.2.1-ubuntu-jdk11
+	
+#  Jira is now available on http://localhost:8080
