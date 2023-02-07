@@ -32,12 +32,12 @@ sudo mkdir -p /cicd/gitlab_ee
 sudo chmod -R 777 /cicd/gitlab_ee
 docker rm -f my-gitlab-http-ee
 docker run --restart always --name my-gitlab-http-ee \
-    --hostname 10.0.43.32 \
+    --hostname 192.168.0.113 \
     --volume /cicd/gitlab_ee/config:/etc/gitlab \
     --volume /cicd/gitlab_ee/logs:/var/log/gitlab \
     --volume /cicd/gitlab_ee/data:/var/opt/gitlab \
     --shm-size 256m \
-    -p 7443:443 -p 780:80 -p 722:22 \
+    -p 443:443 -p 80:80 -p 722:22 \
     -d  gitlab/gitlab-ee:15.8.0-ee.0
 
 # Non-TLS option - Download/Deploy Docker container containing GitLab
@@ -48,7 +48,7 @@ docker run --restart always --name my-gitlab-http \
     --volume $GITLAB_HOME/logs:/var/log/gitlab \
     --volume $GITLAB_HOME/data:/var/opt/gitlab \
     --shm-size 256m \
-    -p 9443:443 -p 980:80 -p 922:22 \
+    -p 443:443 -p 80:80 -p 822:22 \
     -d  gitlab/gitlab-ce:15.8.0-ce.0
 	
 # TLS option - Download/Deploy Docker container containing GitLab
@@ -56,7 +56,7 @@ docker run --restart always --name my-gitlab \
     --hostname nahwu.synology.me \
     -v C:/_MyGitRepos/expense-app-backend/mycert/privkey.pem:/etc/gitlab/ssl/nahwu.synology.me.key \
     -v C:/_MyGitRepos/expense-app-backend/mycert/bundle.pem:/etc/gitlab/ssl/nahwu.synology.me.crt \
-    -p 443:443 -p 80:80 -p 22:22 \
+    -p 443:443 -p 80:80 -p 922:22 \
     -d  gitlab/gitlab-ce:15.8.0-ce.0
 
 # Get root password
